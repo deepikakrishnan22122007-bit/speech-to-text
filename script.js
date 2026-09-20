@@ -11,103 +11,78 @@ const SpeechRecognition =
 if (!SpeechRecognition) {
   statusText.textContent =
     "Speech recognition is not supported. Please use Google Chrome.";
+
   startBtn.disabled = true;
-  stopBtn.disabled = true;
+
 } else {
 
   const recognition = new SpeechRecognition();
 
-  recognition.continuous = true;
-  recognition.interimResults = true;
   recognition.lang = "en-IN";
+  recognition.continuous = false;
+  recognition.interimResults = true;
 
-  let savedText = "";
-  let listening = false;
+  let finalText = "";
+  let isListening = false;
 
-  stopBtn.disabled = true;
-
-  // START SPEAKING
+  // START
   startBtn.addEventListener("click", () => {
 
-    savedText = textOutput.value.trim();
-    listening = true;
-
-    try {
-      recognition.start();
-
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-
-      statusText.textContent = "🎙️ Listening... Speak now.";
-
-    } catch (error) {
-      statusText.textContent = "Already listening.";
+    if (isListening) {
+      return;
     }
+
+    finalText = textOutput.value.trim();
+    isListening = true;
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+
+    statusText.textContent = "🎙️ Listening... Speak now.";
+
+    recognition.start();
   });
 
-  // STOP SPEAKING
+
+  // STOP
   stopBtn.addEventListener("click", () => {
-    listening = false;
+
+    if (!isListening) {
+      return;
+    }
+
     recognition.stop();
   });
+
 
   // SPEECH RESULT
   recognition.onresult = (event) => {
 
-    const finalParts = [];
-    let interimText = "";
+    let temporaryText = "";
 
-    for (let i = 0; i < event.results.length; i++) {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
 
-      const result = event.results[i];
-      const text = result[0].transcript.trim();
+      const speech = event.results[i][0].transcript;
 
-      if (!text) continue;
+      if (event.results[i].isFinal) {
 
-      if (result.isFinal) {
-
-        const last = finalParts[finalParts.length - 1];
-
-        if (last && text.startsWith(last)) {
-          finalParts[finalParts.length - 1] = text;
-        } else if (last && last.startsWith(text)) {
-          // ignore shorter repeat
-        } else {
-          finalParts.push(text);
-        }
+        finalText += speech + " ";
 
       } else {
-        interimText = text;
+
+        temporaryText += speech;
       }
     }
 
-    const finalText = finalParts.join(" ");
-
-    if (finalText && interimText.startsWith(finalText)) {
-      interimText = interimText.slice(finalText.length).trim();
-    }
-
-    const currentText = (finalText + " " + interimText).trim();
-
-    textOutput.value = savedText
-      ? (savedText + " " + currentText).trim()
-      : currentText;
+    textOutput.value =
+      finalText + temporaryText;
   };
 
-  // WHEN THE BROWSER ENDS A SESSION
+
+  // SPEECH ENDED
   recognition.onend = () => {
 
-    if (listening) {
-      savedText = textOutput.value.trim();
-
-      setTimeout(() => {
-        try {
-          recognition.start();
-        } catch (error) {}
-      }, 250);
-
-      return;
-    }
+    isListening = false;
 
     startBtn.disabled = false;
     stopBtn.disabled = true;
@@ -115,54 +90,57 @@ if (!SpeechRecognition) {
     statusText.textContent = "Ready to listen.";
   };
 
+
   // ERROR
   recognition.onerror = (event) => {
 
-    if (event.error === "no-speech" || event.error === "aborted") {
-      return;
-    }
-
-    listening = false;
+    isListening = false;
 
     startBtn.disabled = false;
     stopBtn.disabled = true;
 
-    if (event.error === "not-allowed") {
-      statusText.textContent =
-        "Microphone blocked. Please allow the mic in your browser.";
-    } else {
-      statusText.textContent = "Error: " + event.error;
-    }
+    statusText.textContent =
+      "Error: " + event.error;
   };
-
-  // CLEAR TEXT
-  clearBtn.addEventListener("click", () => {
-
-    textOutput.value = "";
-    savedText = "";
-
-    statusText.textContent = "Text cleared.";
-
-    if (listening) {
-      recognition.abort();
-    }
-  });
 }
 
-// COPY TEXT
+
+// COPY BUTTON
 copyBtn.addEventListener("click", async () => {
 
-  if (!textOutput.value.trim()) {
-    statusText.textContent = "There is no text to copy.";
+  const text = textOutput.value.trim();
+
+  if (text === "") {
+
+    statusText.textContent =
+      "There is no text to copy.";
+
     return;
   }
 
   try {
-    await navigator.clipboard.writeText(textOutput.value);
-    statusText.textContent = "✅ Text copied!";
-  } catch {
+
+    await navigator.clipboard.writeText(text);
+
+    statusText.textContent =
+      "✅ Text copied!";
+
+  } catch (error) {
+
     textOutput.select();
     document.execCommand("copy");
-    statusText.textContent = "✅ Text copied!";
+
+    statusText.textContent =
+      "✅ Text copied!";
   }
+});
+
+
+// CLEAR BUTTON
+clearBtn.addEventListener("click", () => {
+
+  textOutput.value = "";
+
+  statusText.textContent =
+    "Text cleared.";
 });
