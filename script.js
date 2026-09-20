@@ -7,221 +7,223 @@ const copyButton = document.getElementById("copyButton");
 const clearButton = document.getElementById("clearButton");
 
 const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
 let recognition = null;
 let isListening = false;
-let finalText = "";
+let oldText = "";
 
-/* Remove repeated words */
-function removeRepeatedWords(text) {
-  const words = text.trim().split(/\s+/);
-  const cleaned = [];
-
-  for (let i = 0; i < words.length; i++) {
-    if (
-      i === 0 ||
-      words[i].toLowerCase() !== words[i - 1].toLowerCase()
-    ) {
-      cleaned.push(words[i]);
-    }
-  }
-
-  return cleaned.join(" ");
-}
-
-/* Remove repeated phrases */
-function removeRepeatedPhrases(text) {
-  let words = text.trim().split(/\s+/);
-
-  for (let size = 6; size >= 2; size--) {
-    if (words.length >= size * 2) {
-      const firstPart = words
-        .slice(-size * 2, -size)
-        .join(" ")
-        .toLowerCase();
-
-      const secondPart = words
-        .slice(-size)
-        .join(" ")
-        .toLowerCase();
-
-      if (firstPart === secondPart) {
-        words.splice(words.length - size, size);
-      }
-    }
-  }
-
-  return words.join(" ");
-}
-
-function cleanText(text) {
-  let cleaned = removeRepeatedWords(text);
-  cleaned = removeRepeatedPhrases(cleaned);
-  return cleaned.trim();
-}
 
 if (!SpeechRecognition) {
-  micButton.disabled = true;
 
-  statusText.textContent =
-    "Speech recognition is not supported. Please use Google Chrome.";
+    micButton.disabled = true;
+
+    statusText.textContent =
+        "Speech recognition is not supported in this browser.";
+
 } else {
-  recognition = new SpeechRecognition();
 
-  recognition.continuous = true;
+    recognition = new SpeechRecognition();
 
-  /*
-    IMPORTANT:
-    Interim results are disabled.
-    This prevents the same speech from appearing
-    again and again while you are speaking.
-  */
-  recognition.interimResults = false;
+    /*
+     * IMPORTANT
+     * One speech session = one result.
+     */
+    recognition.continuous = false;
 
-  recognition.lang = "en-IN";
-  recognition.maxAlternatives = 1;
+    recognition.interimResults = false;
 
-  recognition.onstart = function () {
-    isListening = true;
+    recognition.lang = "en-IN";
 
-    micButton.classList.add("listening");
+    recognition.maxAlternatives = 1;
 
-    micIcon.textContent = "⏹️";
-    micText.textContent = "Stop Speaking";
 
-    statusText.textContent = "Listening...";
-  };
+    recognition.onstart = function () {
 
-  recognition.onresult = function (event) {
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
+        isListening = true;
 
-        let spokenText =
-          event.results[i][0].transcript.trim();
+        micButton.classList.add("listening");
 
-        if (spokenText !== "") {
+        micIcon.textContent = "⏹️";
 
-          spokenText = cleanText(spokenText);
+        micText.textContent = "Listening...";
 
-          if (spokenText !== "") {
+        statusText.textContent = "Speak now...";
+    };
 
-            finalText =
-              finalText === ""
-                ? spokenText
-                : finalText + " " + spokenText;
 
-            finalText = cleanText(finalText);
+    recognition.onresult = function (event) {
 
-            result.value = finalText;
-
-            result.scrollTop = result.scrollHeight;
-          }
+        if (
+            !event.results ||
+            event.results.length === 0
+        ) {
+            return;
         }
-      }
-    }
-  };
 
-  recognition.onerror = function (event) {
-    console.log("Speech recognition error:", event.error);
 
-    if (event.error === "not-allowed") {
+        const speech =
+            event.results[0][0].transcript.trim();
 
-      statusText.textContent =
-        "Microphone permission denied. Please allow microphone access.";
 
-    } else if (event.error === "no-speech") {
+        if (speech === "") {
+            return;
+        }
 
-      statusText.textContent =
-        "No speech detected. Please speak again.";
 
-    } else if (event.error === "network") {
+        /*
+         * Add the new sentence only once.
+         */
+        if (oldText === "") {
 
-      statusText.textContent =
-        "Network error. Please check your internet connection.";
+            result.value = speech;
 
-    } else {
+        } else {
 
-      statusText.textContent =
-        "Error: " + event.error;
-    }
-  };
+            result.value =
+                oldText + " " + speech;
+        }
 
-  recognition.onend = function () {
 
-    isListening = false;
+        oldText = result.value.trim();
 
-    micButton.classList.remove("listening");
 
-    micIcon.textContent = "🎤";
-    micText.textContent = "Start Speaking";
+        result.scrollTop =
+            result.scrollHeight;
+    };
 
-    if (!statusText.textContent.includes("denied")) {
-      statusText.textContent = "Ready";
-    }
-  };
 
-  micButton.addEventListener("click", function () {
+    recognition.onerror = function (event) {
 
-    if (isListening) {
+        console.log(
+            "Speech recognition error:",
+            event.error
+        );
 
-      recognition.stop();
 
-    } else {
+        if (event.error === "not-allowed") {
 
-      finalText = result.value.trim();
+            statusText.textContent =
+                "Please allow microphone permission.";
 
-      try {
-        recognition.start();
-      } catch (error) {
-        console.log("Recognition start error:", error);
-      }
-    }
-  });
+        } else if (event.error === "no-speech") {
+
+            statusText.textContent =
+                "No speech detected. Try again.";
+
+        } else {
+
+            statusText.textContent =
+                "Error: " + event.error;
+        }
+    };
+
+
+    recognition.onend = function () {
+
+        isListening = false;
+
+        micButton.classList.remove("listening");
+
+        micIcon.textContent = "🎤";
+
+        micText.textContent =
+            "Start Speaking";
+
+
+        if (
+            !statusText.textContent.includes("permission") &&
+            !statusText.textContent.includes("detected")
+        ) {
+
+            statusText.textContent =
+                "Ready";
+        }
+    };
+
+
+    micButton.addEventListener(
+        "click",
+        function () {
+
+            if (isListening) {
+
+                recognition.stop();
+
+                return;
+            }
+
+
+            /*
+             * Save the existing text.
+             */
+            oldText = result.value.trim();
+
+
+            try {
+
+                recognition.start();
+
+            } catch (error) {
+
+                console.log(error);
+            }
+        }
+    );
 }
 
 
-/* COPY BUTTON */
+/* COPY */
 
-copyButton.addEventListener("click", async function () {
+copyButton.addEventListener(
+    "click",
+    async function () {
 
-  const text = result.value.trim();
-
-  if (text === "") {
-
-    statusText.textContent =
-      "There is no text to copy.";
-
-    return;
-  }
-
-  try {
-
-    await navigator.clipboard.writeText(text);
-
-    statusText.textContent =
-      "Text copied successfully!";
-
-  } catch (error) {
-
-    result.select();
-
-    document.execCommand("copy");
-
-    statusText.textContent =
-      "Text copied successfully!";
-  }
-});
+        const text =
+            result.value.trim();
 
 
-/* CLEAR BUTTON */
+        if (text === "") {
 
-clearButton.addEventListener("click", function () {
+            statusText.textContent =
+                "There is no text to copy.";
 
-  result.value = "";
+            return;
+        }
 
-  finalText = "";
 
-  statusText.textContent =
-    "Text cleared.";
-});
+        try {
+
+            await navigator.clipboard.writeText(text);
+
+            statusText.textContent =
+                "Text copied successfully!";
+
+        } catch (error) {
+
+            result.select();
+
+            document.execCommand("copy");
+
+            statusText.textContent =
+                "Text copied successfully!";
+        }
+    }
+);
+
+
+/* CLEAR */
+
+clearButton.addEventListener(
+    "click",
+    function () {
+
+        result.value = "";
+
+        oldText = "";
+
+        statusText.textContent =
+            "Text cleared.";
+    }
+);
