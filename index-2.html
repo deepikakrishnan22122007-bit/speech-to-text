@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech to Text</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="app-card">
+      <div class="microphone">🎙️</div>
+
+      <h1>Speech to Text</h1>
+      <p class="subtitle">Speak and convert your voice into text</p>
+
+      <button id="micButton" class="mic-button">
+        <span id="micIcon">🎤</span>
+        <span id="micText">Start Speaking</span>
+      </button>
+
+      <p id="status">Ready</p>
+
+      <textarea
+        id="result"
+        placeholder="Your speech will appear here..."
+        aria-label="Speech text"
+      ></textarea>
+
+      <div class="buttons">
+        <button id="copyButton">📋 Copy Text</button>
+        <button id="clearButton">🗑️ Clear</button>
+      </div>
+
+      <p class="help">
+        Allow microphone permission when your browser asks.
+        Chrome and Edge are recommended.
+      </p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
