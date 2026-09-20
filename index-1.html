@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech to Text</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Speech to Text</h1>
+    <p class="subtitle">Speak naturally and convert your voice into text.</p>
+
+    <div class="card">
+      <button id="startBtn">🎙️ Start Speaking</button>
+      <button id="stopBtn" class="secondary" disabled>⏹️ Stop</button>
+
+      <textarea id="textOutput" placeholder="Your converted text will appear here..." readonly></textarea>
+
+      <div class="actions">
+        <button id="copyBtn" class="secondary">📋 Copy Text</button>
+        <button id="clearBtn" class="secondary">🗑️ Clear</button>
+      </div>
+
+      <p id="status">Ready to listen.</p>
+    </div>
+
+    <div class="info">
+      <h2>How it works</h2>
+      <p>Tap <b>Start Speaking</b>, allow microphone access, and speak. Your browser will convert your speech into text.</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
